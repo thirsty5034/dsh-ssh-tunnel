@@ -1,0 +1,4 @@
+# dsh-ssh-tunnel bundle mount
+- insert:
+    - id: ssh-tunnel
+      name: dsh-ssh-tunnel

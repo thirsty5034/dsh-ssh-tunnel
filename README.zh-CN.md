@@ -1,0 +1,115 @@
+# dsh-ssh-tunnel
+
+[English](./README.md) | [简体中文](./README.zh-CN.md)
+
+DeepSeek Harness **社区插件**：多机 **SSH 隧道** + **SSHManager**，挂载于 [dsh-better-sidebar](https://github.com/omdsh-dev/DSH-better-sidebar)。
+
+- 主机库 + 密钥（**不**进入模型上下文）  
+- **按项目授权**（`projectPathKey` = 工作区 cwd）  
+- 模型工具 **`SSHManager`**（exec、SFTP、会话策略）  
+- 侧栏：连接 / 授权  
+- 中央面板：交互式 **终端**（xterm）与 **双栏 SFTP**  
+
+**不会**把全局 `fs` / `subprocess` 改成「单机远程盘」。
+
+配套：[dsh-git-forge](https://github.com/thirsty5034/dsh-git-forge)（Git 凭据 + push 策略）。
+
+## 环境要求
+
+- 带 **dsh-better-sidebar**（≥ 0.12）的 DSH web profile  
+- Node.js 18+  
+- 能访问目标 SSH 主机  
+
+## 安装
+
+**macOS / Linux**：
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/thirsty5034/dsh-ssh-tunnel/main/scripts/install.sh | bash
+```
+
+**Windows（PowerShell）**：
+
+```powershell
+irm https://raw.githubusercontent.com/thirsty5034/dsh-ssh-tunnel/main/scripts/install.ps1 | iex
+```
+
+或 CLI（发布到 npm 前默认 GitHub 源）：
+
+```bash
+export DSH_HOME=${DSH_HOME:-$HOME/.dsh}
+dsh plugin --profile web add "dsh-ssh-tunnel@github:thirsty5034/dsh-ssh-tunnel"
+dsh --profile web --dump-config | grep ssh-tunnel
+```
+
+Host 侧改动后需 **重启 dsh web**，再 **硬刷新** 浏览器。
+
+<details>
+<summary><b>可选参数 / 本地 link / 日后 npm</b></summary>
+
+```sh
+bash scripts/install.sh --restart
+bash scripts/install.sh --from npm 0.3.6
+dsh plugin --profile web add "dsh-ssh-tunnel@link:/path/to/dsh-ssh-tunnel"
+```
+
+</details>
+
+## 数据目录
+
+`$DSH_HOME/ssh-tunnel/`（建议 `0700`）：
+
+| 文件 | 用途 |
+|------|------|
+| `hosts.json` | 主机元数据（无密钥明文） |
+| `secrets.json` | 密码 / PEM / 口令（`0600`） |
+| `grants.json` | `projectPathKey → hostIds[]` |
+| `known_hosts.json` | 已信任 host key 指纹 |
+
+## 侧栏
+
+1. **主机库** — 增删改、OpenSSH 配置扫描导入  
+2. **项目授权** — 当前项目允许使用的主机  
+3. **隧道会话** — 连接 / 断开；打开 **终端** 或 **SFTP**  
+
+## 模型工具
+
+```text
+SSHManager action=list_hosts
+SSHManager action=exec host_id=<id> command="uname -a"
+SSHManager action=sftp_list host_id=<id> path=/
+```
+
+会话策略：`reuse_or_create`（默认）、`new`、`require_existing`，或显式 `session_id`。  
+`keyboardInteractive` 主机 **不会** 被工具自动拨号，需先在 UI 连接。
+
+## 安全
+
+- 列表与工具结果不得包含 password / PEM / 口令  
+- 本地上传下载路径限制在项目根与 `/workspace`  
+- HTTP API 与其他 DSH 本地插件相同（loopback / trusted hosts）  
+- 优先密钥登录；若 `secrets.json` 可能泄露请轮换凭据  
+
+## 界面国际化
+
+- 命名空间：`sshTunnel`  
+- 字典：`zh` / `en`，注册到 `ctx.locale`  
+- Tab 标题与面板随 DSH 界面语言即时切换  
+
+Host 侧 `SSHManager` 描述保持英文（面向模型）。
+
+## 开发
+
+```bash
+npm test
+npm run check
+./scripts/sync-to-dsh.sh
+```
+
+### xterm 加载
+
+优先使用环境中的 `@xterm/xterm`；否则回退 jsDelivr CDN（需外网 / CSP 放行）。
+
+## 许可证
+
+MIT — 见 [LICENSE](./LICENSE)。

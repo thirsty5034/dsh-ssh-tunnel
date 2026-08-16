@@ -1,0 +1,115 @@
+# dsh-ssh-tunnel
+
+[English](./README.md) | [简体中文](./README.zh-CN.md)
+
+DeepSeek Harness community plugin: multi-host **SSH tunnel** + **SSHManager** for [dsh-better-sidebar](https://github.com/omdsh-dev/DSH-better-sidebar).
+
+- Host inventory + secrets (never exposed to the model)  
+- **Project-scoped** authorization (`projectPathKey` = workspace cwd)  
+- Model tool **`SSHManager`** (exec, SFTP, session strategies)  
+- Sidebar tab for connect / grants  
+- Center overlay: interactive **terminal** (xterm) and **dual-pane SFTP**
+
+Does **not** replace global `fs` / `subprocess` with a single remote disk.
+
+Companion: [dsh-git-forge](https://github.com/thirsty5034/dsh-git-forge) (Git credentials + push policy).
+
+## Requirements
+
+- DSH web profile with **dsh-better-sidebar** (≥ 0.12)  
+- Node.js 18+  
+- Network access to your SSH targets  
+
+## Install
+
+**macOS / Linux**:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/thirsty5034/dsh-ssh-tunnel/main/scripts/install.sh | bash
+```
+
+**Windows (PowerShell)**:
+
+```powershell
+irm https://raw.githubusercontent.com/thirsty5034/dsh-ssh-tunnel/main/scripts/install.ps1 | iex
+```
+
+Or CLI (GitHub source until npm publish):
+
+```bash
+export DSH_HOME=${DSH_HOME:-$HOME/.dsh}
+dsh plugin --profile web add "dsh-ssh-tunnel@github:thirsty5034/dsh-ssh-tunnel"
+dsh --profile web --dump-config | grep ssh-tunnel
+```
+
+Restart DSH web after host-side changes, then hard-refresh the browser.
+
+<details>
+<summary><b>Options / local link / npm (later)</b></summary>
+
+```sh
+bash scripts/install.sh --restart
+bash scripts/install.sh --from npm 0.3.6
+dsh plugin --profile web add "dsh-ssh-tunnel@link:/path/to/dsh-ssh-tunnel"
+```
+
+</details>
+
+## Data layout
+
+Under `$DSH_HOME/ssh-tunnel/` (mode `0700`):
+
+| File | Purpose |
+|------|---------|
+| `hosts.json` | Non-secret host metadata |
+| `secrets.json` | Passwords / PEM / passphrases (`0600`) |
+| `grants.json` | `projectPathKey → hostIds[]` |
+| `known_hosts.json` | Trusted host key fingerprints |
+
+## Sidebar
+
+1. **Hosts** — CRUD, OpenSSH scan import  
+2. **Project access** — which hosts the current project may use  
+3. **Sessions** — Connect / disconnect; open **Terminal** or **SFTP**
+
+## Model tool
+
+```text
+SSHManager action=list_hosts
+SSHManager action=exec host_id=<id> command="uname -a"
+SSHManager action=sftp_list host_id=<id> path=/
+```
+
+Session strategies: `reuse_or_create` (default), `new`, `require_existing`, or explicit `session_id`.  
+`keyboardInteractive` hosts are never auto-dialed by the tool; connect in the UI first.
+
+## Security
+
+- Tool and list APIs must not return `password` / PEM / passphrase  
+- Local upload/download paths are constrained to the project root and `/workspace`  
+- HTTP API is fenced like other DSH local plugins (loopback / trusted hosts)  
+- Prefer key-based auth; rotate secrets if `secrets.json` may have leaked  
+
+## Internationalization (UI)
+
+- Namespace: `sshTunnel`  
+- Dictionaries: `zh` / `en` on `ctx.locale`  
+- Tab title and panel track DSH locale preference live  
+
+Host `SSHManager` strings stay English (model-facing).
+
+## Development
+
+```bash
+npm test
+npm run check
+./scripts/sync-to-dsh.sh   # requires DSH_HOME; keeps local-plugins copy
+```
+
+### xterm loading
+
+Prefers a bundled `@xterm/xterm` when available; otherwise falls back to jsDelivr CDN (needs network / CSP allowlist).
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
