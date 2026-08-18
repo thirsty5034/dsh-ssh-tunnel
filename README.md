@@ -14,6 +14,12 @@ Does **not** replace global `fs` / `subprocess` with a single remote disk.
 
 Companion: [dsh-git-forge](https://github.com/thirsty5034/dsh-git-forge) (Git credentials + push policy).
 
+## Credits / prior art
+
+**Product shape and several UX patterns are informed by open-source [LiveAgent](https://github.com/thirsty5034/LiveAgent)** (multi-host SSH inventory, project-scoped access, sidebar tunnel management, center terminal / SFTP surfaces).
+
+This package is a **DSH-native implementation** (Cordis host/client plugin, `dsh-better-sidebar` tab, `SSHManager` tool, DSH-local secret layout). It is **not** a git fork of LiveAgent and does not vendor LiveAgent sources. Consult LiveAgent under its own license when comparing designs.
+
 ## Requirements
 
 - DSH web profile with **dsh-better-sidebar** (≥ 0.12)  

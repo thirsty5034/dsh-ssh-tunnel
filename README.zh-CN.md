@@ -14,6 +14,12 @@ DeepSeek Harness **社区插件**：多机 **SSH 隧道** + **SSHManager**，挂
 
 配套：[dsh-git-forge](https://github.com/thirsty5034/dsh-git-forge)（Git 凭据 + push 策略）。
 
+## 致谢 / 参考来源
+
+**产品形态与部分 UX 参考开源项目 [LiveAgent](https://github.com/thirsty5034/LiveAgent)**（多机 SSH 主机库、按项目授权、侧栏隧道管理、中央终端 / SFTP 等）。
+
+本仓库是 **DSH 原生实现**（Cordis host/client、`dsh-better-sidebar` Tab、`SSHManager` 工具、DSH 本地密钥布局），**不是** LiveAgent 的 git fork，也**不**内嵌 LiveAgent 源码。对照设计时请遵守 LiveAgent 自身许可证。
+
 ## 环境要求
 
 - 带 **dsh-better-sidebar**（≥ 0.12）的 DSH web profile  
