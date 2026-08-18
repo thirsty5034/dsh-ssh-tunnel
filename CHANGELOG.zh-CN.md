@@ -2,6 +2,23 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## 0.3.10 — 2026-08-18
+
+### 修复
+- 主机库 / 隧道列表：过长 endpoint（如 IPv6）不再把 **编辑/删除** 等按钮挤出可视区——文案可换行，操作区始终保留
+
+## 0.3.9 — 2026-08-18
+
+### 修复
+- **SSHManager 作为全局模型工具正确注册**（不再依赖 out-of-tree 解析 `@deepseek-ai/dsh-tools` 的 `defineTool`；改用与 modlens 相同的裸 JSON Schema 定义）。此前标准对话工具列表中看不到该工具。
+
+## 0.3.8 — 2026-08-18
+
+### 修复
+- Host key 固定：使用 ssh2 `hostHash: sha256` 并以 hex 摘要入库（旧版 `String(Buffer)` 条目作废并重新提示信任）
+- 信任 UI 展示 SHA256 指纹；`health.version` 与 `package.json` 对齐
+- **Connect 不再静默写入项目授权**；须先在「项目授权」勾选主机
+
 ## 0.3.7 — 2026-08-18
 
 ### 文档

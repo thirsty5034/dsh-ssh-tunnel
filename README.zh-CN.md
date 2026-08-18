@@ -83,7 +83,7 @@ dsh plugin --profile web add "dsh-ssh-tunnel@link:/path/to/dsh-ssh-tunnel"
 ## 侧栏
 
 1. **主机库** — 增删改、OpenSSH 配置扫描导入  
-2. **项目授权** — 当前项目允许使用的主机  
+2. **项目授权** — 当前项目允许使用的主机（**连接前须先授权**；Connect 不会自动写入授权）  
 3. **隧道会话** — 连接 / 断开；打开 **终端** 或 **SFTP**  
 
 ## 模型工具
@@ -101,6 +101,7 @@ SSHManager action=sftp_list host_id=<id> path=/
 
 - 列表与工具结果不得包含 password / PEM / 口令  
 - 本地上传下载路径限制在项目根与 `/workspace`  
+- Host key 以 **SHA256 hex** 存入 `known_hosts.json`；首次或变更时在侧栏确认（展示指纹）  
 - HTTP API 与其他 DSH 本地插件相同（loopback / trusted hosts）  
 - 优先密钥登录；若 `secrets.json` 可能泄露请轮换凭据  
 

@@ -2,6 +2,23 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## 0.3.10 — 2026-08-18
+
+### Fixed
+- Host library / tunnel rows: long endpoints (IPv6) no longer push **Edit/Delete** (and other actions) off-screen — text wraps, action cluster stays visible
+
+## 0.3.9 — 2026-08-18
+
+### Fixed
+- **SSHManager registers as a global model tool** without importing `@deepseek-ai/dsh-tools` (raw JSON-Schema definition, same pattern as modlens). Out-of-tree `defineTool` resolution left the tool missing from standard chat catalogs.
+
+## 0.3.8 — 2026-08-18
+
+### Fixed
+- Host key pinning: use ssh2 `hostHash: sha256` and store hex digests (legacy `String(Buffer)` entries are ignored and re-prompted)
+- Trust UI shows the SHA256 fingerprint; `health.version` tracks `package.json`
+- **Connect no longer auto-writes project grants**; host must already be authorized under Project access
+
 ## 0.3.7 — 2026-08-18
 
 ### Docs

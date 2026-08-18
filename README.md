@@ -83,7 +83,7 @@ Under `$DSH_HOME/ssh-tunnel/` (mode `0700`):
 ## Sidebar
 
 1. **Hosts** — CRUD, OpenSSH scan import  
-2. **Project access** — which hosts the current project may use  
+2. **Project access** — which hosts the current project may use (**grant before connect**; Connect does not auto-authorize)  
 3. **Sessions** — Connect / disconnect; open **Terminal** or **SFTP**
 
 ## Model tool
@@ -101,6 +101,7 @@ Session strategies: `reuse_or_create` (default), `new`, `require_existing`, or e
 
 - Tool and list APIs must not return `password` / PEM / passphrase  
 - Local upload/download paths are constrained to the project root and `/workspace`  
+- Host keys are stored as **SHA256 hex** in `known_hosts.json`; first connect / rotation prompts in the sidebar (fingerprint shown)  
 - HTTP API is fenced like other DSH local plugins (loopback / trusted hosts)  
 - Prefer key-based auth; rotate secrets if `secrets.json` may have leaked  
 

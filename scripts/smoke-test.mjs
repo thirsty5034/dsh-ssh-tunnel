@@ -12,6 +12,11 @@ import {
   assertNoSecretFields,
 } from '../lib/shared/host-summary.js'
 import { chunkFromBuffer } from '../lib/shared/shell-buffer.js'
+import {
+  fingerprintFromHostKey,
+  formatHostFingerprint,
+  isUsableHostFingerprint,
+} from '../lib/shared/host-key.js'
 
 let failed = 0
 function test(name, fn) {
@@ -80,6 +85,29 @@ test('chunkFromBuffer incremental', () => {
   const b = chunkFromBuffer('hello world', 5)
   assert.equal(b.chunk, ' world')
   assert.equal(b.since, 5)
+})
+
+test('host key fingerprint is stable sha256 hex (no UTF-8 collision)', () => {
+  const prefix = Buffer.concat([
+    Buffer.from([0, 0, 0, 11]),
+    Buffer.from('ssh-ed25519'),
+    Buffer.from([0, 0, 0, 32]),
+  ])
+  const k1 = Buffer.concat([prefix, Buffer.alloc(32, 0x80)])
+  const k2 = Buffer.concat([prefix, Buffer.alloc(32, 0x81)])
+  // Legacy bug: String(buf) collapsed different keys via U+FFFD.
+  assert.equal(String(k1) === String(k2), true)
+  const f1 = fingerprintFromHostKey(k1)
+  const f2 = fingerprintFromHostKey(k2)
+  assert.equal(isUsableHostFingerprint(f1), true)
+  assert.equal(isUsableHostFingerprint(f2), true)
+  assert.notEqual(f1, f2)
+  // ssh2 hostHash path: already-hex digest is kept as-is (lowercased).
+  assert.equal(fingerprintFromHostKey(f1.toUpperCase()), f1)
+  assert.equal(formatHostFingerprint(f1), 'SHA256:' + f1)
+  // Legacy binary stored strings are rejected as unusable.
+  assert.equal(isUsableHostFingerprint(String(k1)), false)
+  assert.equal(isUsableHostFingerprint('\u0000ssh-ed25519'), false)
 })
 
 if (failed) {
