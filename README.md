@@ -61,6 +61,14 @@ dsh plugin --profile web add "dsh-ssh-tunnel@link:/path/to/dsh-ssh-tunnel"
 
 </details>
 
+
+## Discoverability
+
+- GitHub topics: `dsh-plugin`, `deepseek-harness`, `dsh` (required for [dsh.so](https://www.dsh.so/) auto-index)
+- Install from GitHub (current): see **Install** above
+- Store listings may lag crawlers; source of truth is this repository
+
+
 ## Data layout
 
 Under `$DSH_HOME/ssh-tunnel/` (mode `0700`):

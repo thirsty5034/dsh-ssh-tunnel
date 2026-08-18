@@ -18,11 +18,13 @@
   },
   "keywords": [
     "dsh",
+    "dsh-plugin",
     "deepseek-harness",
     "ssh",
     "sftp",
     "cordis",
-    "better-sidebar"
+    "better-sidebar",
+    "dsh-better-sidebar"
   ],
   "engines": {
     "node": ">=18"
