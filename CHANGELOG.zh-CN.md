@@ -2,6 +2,11 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## 未发布
+
+### 变更
+- **工具定义改用 spec 编写，宿主能解析到 `defineTool` 时即由它编译。** 此前注释称 out-of-tree 解析 `@deepseek-ai/dsh-tools` 不可靠；在当前宿主上该包可从插件目录解析（DSH 0.1.7-rc.2 实测）。新增 `lib/shared/tool-def.js`：优先经运行时 `defineTool` 编译同一份 spec（带严格参数校验），import 失败时回退到原先的 raw JSON-Schema 形状，解析不到运行时包的宿主保持今天的行为。两条路径产出的 schema 一致（已进自检），`timeoutMs` 保留，且参数对象在两条路径上都保持关闭（`additionalProperties: false`）。
+
 ## 0.4.6 — 2026-09-15
 
 ### 修复

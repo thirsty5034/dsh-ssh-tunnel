@@ -2,6 +2,11 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## Unreleased
+
+### Changed
+- **Tool definitions are authored as specs and compiled by `defineTool` when the host resolves it.** The old note claimed out-of-tree `@deepseek-ai/dsh-tools` resolution is unreliable; on current hosts the package resolves from the plugin directory (verified on DSH 0.1.7-rc.2). The new `lib/shared/tool-def.js` compiles one spec through the runtime's `defineTool` (strict argument validation) and falls back to the previous raw JSON-Schema shape when the import fails, so hosts with unresolvable runtime packages keep today's behavior. Both paths emit the same schema (smoke-tested), `timeoutMs` is preserved, and parameters stay closed (`additionalProperties: false`) on both.
+
 ## 0.4.6 — 2026-09-15
 
 ### Fixed

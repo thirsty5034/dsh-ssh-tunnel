@@ -51,6 +51,7 @@ import {
   isVendorAssetAllowed,
   resolveVendorAsset,
 } from '../lib/shared/vendor.js'
+import { buildTool } from '../lib/shared/tool-def.js'
 
 let failed = 0
 const pending = []
@@ -84,6 +85,34 @@ test('normalizeProjectKey strips trailing slash', () => {
 test('normalizeProjectKey empty', () => {
   assert.equal(normalizeProjectKey(''), '')
   assert.equal(normalizeProjectKey(null), '')
+})
+
+test('buildTool compiles spec to a registry-ready definition', () => {
+  const tool = buildTool({
+    name: 'T',
+    description: 'd',
+    timeoutMs: 30000,
+    parameters: {
+      action: { type: 'string', required: true },
+      cols: { type: 'number' },
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { text: { type: 'string', required: true }, isError: { type: 'boolean' } },
+      },
+      render: (_args, value) => [{ type: 'text', text: value.text }],
+    },
+    async execute() { return { text: 'ok' } },
+  })
+  assert.equal(tool.name, 'T')
+  assert.equal(tool.timeoutMs, 30000)
+  assert.deepEqual(tool.parameters.required, ['action'])
+  assert.equal(tool.parameters.additionalProperties, false)
+  assert.deepEqual(tool.output.schema.required, ['text'])
+  assert.equal(tool.output.schema.additionalProperties, false)
+  assert.equal(typeof tool.execute, 'function')
 })
 
 test('isPathInsideRoots allows children only', () => {
