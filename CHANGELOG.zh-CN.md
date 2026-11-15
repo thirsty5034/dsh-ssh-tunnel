@@ -2,6 +2,15 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## 0.5.0 — 2026-11-15
+
+### 新增
+- **API 信任三级降级链。** 请求围栏在 DSH `connection` 服务未挂载时不再整体 403：`connection.requestRejection`（权威）→ `webStartup.trustedHosts`（自管 `--trusted-host` 列表）→ 仅回环放行。没有 Connection 服务的部署形态也能保住带围栏的 API。当前 DSH 0.2.x web 部署下行为不变（Connection 仍是权威）。
+
+### 修复
+- **SFTP/终端浮层让出桌面顶栏。** 全屏浮层改用 `inset: var(--dsh-frame-chrome-top, 0px) 0 0 0`，桌面端的原生窗口按钮不再被盖住（web 部署没有该变量，视觉零变化）。
+- **游标单位钉死为宿主字符串下标。** 轮询 tick 直接采用 `r.length`，不再用 `chunk.length` 自行推导；首屏 drain 在 ring 淘汰导致 buffer 变短时重新锚定到保留前缀——多字节输出不会再造成游标错位。
+
 ## 0.4.7 — 2026-11-15
 
 ### 修复

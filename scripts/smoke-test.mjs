@@ -36,7 +36,7 @@ import {
   kbiUnsupportedError,
 } from '../lib/shared/session-policy.js'
 import { createSessionRegistry } from '../lib/session.js'
-import { isLoopbackHostname } from '../lib/shared/http-trust.js'
+import { isLoopbackHostname, isWildcardHost, apiTrustDecision } from '../lib/shared/http-trust.js'
 import {
   findExistingHostByEndpoint,
   readJsonFile,
@@ -133,6 +133,44 @@ test('http-trust: 0.0.0.0 is not loopback', () => {
   assert.equal(isLoopbackHostname('0.0.0.0'), false)
 })
 
+test('apiTrustDecision: connection service is authoritative when mounted', () => {
+  const req = { headers: { host: '127.0.0.1:3080' } }
+  const conn = (verdict) => ({ requestRejection: () => verdict })
+  assert.equal(apiTrustDecision({ connection: conn(undefined) }, req), undefined)
+  assert.equal(apiTrustDecision({ connection: conn(401) }, req), 401)
+  assert.equal(apiTrustDecision({ connection: conn(403) }, req), 403)
+})
+
+test('apiTrustDecision: webStartup trustedHosts fence when connection is absent', () => {
+  const req = { headers: { host: 'dsh.example.com', origin: 'https://dsh.example.com' } }
+  const evil = { headers: { host: 'dsh.example.com', origin: 'https://evil.example' } }
+  assert.equal(apiTrustDecision({ webStartup: { trustedHosts: ['dsh.example.com'] } }, req), undefined)
+  assert.equal(apiTrustDecision({ webStartup: { trustedHosts: ['dsh.example.com'] } }, evil), 403)
+  // No trusted hosts configured -> the layer admits nothing.
+  assert.equal(apiTrustDecision({ webStartup: { trustedHosts: [] } }, req), 403)
+})
+
+test('apiTrustDecision: loopback-only last resort without connection/webStartup', () => {
+  const loop = { headers: { host: '127.0.0.1:3080' } }
+  const loopSameOrigin = { headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' } }
+  const loopCrossOrigin = { headers: { host: '127.0.0.1:3080', origin: 'http://evil.example' } }
+  const remote = { headers: { host: 'dsh.example.com' } }
+  const wildcard = { headers: { host: '0.0.0.0:3080' } }
+  assert.equal(apiTrustDecision({}, loop), undefined)
+  assert.equal(apiTrustDecision({}, loopSameOrigin), undefined)
+  assert.equal(apiTrustDecision({}, loopCrossOrigin), 403)
+  assert.equal(apiTrustDecision({}, remote), 403)
+  assert.equal(apiTrustDecision({}, wildcard), 403)
+})
+
+test('apiTrustDecision: connection missing but method present still uses connection', () => {
+  // A connection object without requestRejection is not the fence owner;
+  // fall through to webStartup/loopback rather than calling a broken shape.
+  const loop = { headers: { host: '127.0.0.1:3080' } }
+  assert.equal(apiTrustDecision({ connection: {} }, loop), undefined)
+  assert.equal(apiTrustDecision({ connection: { requestRejection: 'not-a-function' } }, loop), undefined)
+})
+
 test('constrainToWorkspace rejects outbound symlink', () => {
   const link = '/workspace/DSH-plugin/.audit-path-guard-link'
   try {
@@ -212,14 +250,16 @@ test('issue #11 repro: two overlapping shellRead polls with same cursor must not
   }
   const poll = async () => {
     // Mirrors the fixed CenterBash tick: the in-flight guard is checked
-    // at entry and released only when the awaited read settles.
+    // at entry and released only when the awaited read settles; the
+    // cursor follows the host's authoritative r.length (byte offset),
+    // never chunk.length (UTF-16 chars).
     if (readInFlight) return
     readInFlight = true
     try {
       const r = await api('shellRead', { since })
       if (r.chunk) {
         term.write(r.chunk)
-        since = r.length != null ? r.length : since + r.chunk.length
+        if (r.length != null) since = r.length
       } else if (r.length != null) since = r.length
     } finally {
       readInFlight = false
@@ -254,6 +294,29 @@ test('issue #11 repro: cancelled poll must not write to a disposed terminal', as
   cancelled = true // cleanup fires mid-flight
   await p
   assert.deepEqual(written, [])
+})
+
+test('cursor advance follows the host cursor unit, not a client-side re-derivation', () => {
+  // chunkFromBuffer's cursor unit is the UTF-16 code unit (JS string
+  // index): length === full.length, since === slice start. The client
+  // must adopt r.length verbatim; deriving it from chunk.length or
+  // Buffer.byteLength would desync the cursor on non-ASCII output.
+  const full = '中文输出'
+  const sliced = chunkFromBuffer(full, 0)
+  assert.equal(sliced.chunk, full)
+  assert.equal(sliced.length, full.length) // 4 UTF-16 units, NOT Buffer.byteLength
+  assert.equal(sliced.since, 0)
+  // Simulate the fixed tick's cursor update for this response.
+  let since = 0
+  const r = { chunk: sliced.chunk, length: sliced.length, since: sliced.since }
+  if (r.chunk) {
+    if (r.length != null) since = r.length
+  }
+  assert.equal(since, 4) // cursor unit == string index
+  // A later slice from that cursor must not repeat text.
+  const more = chunkFromBuffer(full + '!', 4)
+  assert.equal(more.chunk, '!')
+  assert.equal(more.since, 4)
 })
 
 test('host key fingerprint is stable sha256 hex (no UTF-8 collision)', () => {

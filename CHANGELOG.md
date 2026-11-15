@@ -2,6 +2,15 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## 0.5.0 — 2026-11-15
+
+### Added
+- **Layered API trust chain.** The request fence now degrades gracefully when the DSH `connection` service is not mounted: `connection.requestRejection` (authoritative) → `webStartup.trustedHosts` (self-managed `--trusted-host` list) → loopback-only admission. Deployments without the Connection service keep a fenced API instead of a blanket 403. Behavior in the current DSH 0.2.x web profile is unchanged (Connection stays authoritative).
+
+### Fixed
+- **SFTP/terminal overlays yield the desktop top bar.** Full-screen overlays use `inset: var(--dsh-frame-chrome-top, 0px) 0 0 0`, so the native window chrome stays clickable on desktop builds (no visual change in the web deployment, where the variable is absent).
+- **Cursor unit pinned to the host's string index.** The polling tick adopts `r.length` verbatim instead of re-deriving the cursor from `chunk.length`, and the boot drain re-anchors to the retained base when ring eviction shrank the buffer — multi-byte output can no longer desync the cursor.
+
 ## 0.4.7 — 2026-11-15
 
 ### Fixed
