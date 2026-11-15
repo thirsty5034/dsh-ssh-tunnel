@@ -387,6 +387,57 @@ test('granted host: requireLiveSession still allows use', () => {
   assert.equal(registry.requireLiveSession('s1', key).id, 's1')
 })
 
+test('closeAll terminates every live session and survives a failing close', () => {
+  // Fork 431e465: plugin unload must not leak live SSH sessions; one
+  // failing close must not stop the rest.
+  const registry = makeRegistry({ isHostAuthorized: () => true })
+  const key = '/workspace/DSH-plugin'
+  const bad = liveRec('bad', 'h1', key)
+  bad.client = { end() { throw new Error('client.end exploded') } }
+  const good = liveRec('good', 'h2', key)
+  let ended = 0
+  good.client = { end() { ended += 1 } }
+  registry.sessions.set('bad', bad)
+  registry.sessions.set('good', good)
+  const r = registry.closeAll()
+  assert.equal(r.closed, 2)
+  assert.deepEqual([...r.sessionIds].sort(), ['bad', 'good'])
+  assert.equal(registry.sessions.size, 0)
+  assert.equal(ended, 1)
+})
+
+test('canGoUp root boundary: POSIX, drive and UNC roots cannot go up', () => {
+  // Extracted from fork 2ed6a8b (canGoUp): the SFTP "Up" button must be
+  // disabled at filesystem roots instead of looping to "/".
+  // canGoUp is mirrored from lib/client.js (KEEP IN SYNC).
+  const canGoUp = (p) => {
+    const s = String(p || '')
+    if (!s || s === '/') return false
+    if (s.startsWith('/')) {
+      // "//server/share" is a UNC root, not a POSIX parent chain.
+      if (/^\/\/[^/]+\/[^/]+\/?$/.test(s)) return false
+      return s.replace(/\/+$/, '') !== '/'
+    }
+    const winDrive = /^[a-zA-Z]:[\\/]?$/
+    const unc = /^\/\/[^/]+\/[^/]+\/?$/
+    return !(winDrive.test(s) || unc.test(s) || (() => {
+      if (!s || s === '/') return true
+      const n = String(s).replace(/\/+$/, '')
+      const i = n.lastIndexOf('/')
+      const parent = i <= 0 ? '/' : n.slice(0, i) || '/'
+      return parent === s
+    })())
+  }
+  assert.equal(canGoUp('/'), false)
+  assert.equal(canGoUp('/workspace'), true)
+  assert.equal(canGoUp('/workspace/DSH-plugin'), true)
+  assert.equal(canGoUp('C:\\'), false)
+  assert.equal(canGoUp('C:/'), false)
+  assert.equal(canGoUp('//server/share'), false)
+  assert.equal(canGoUp(''), false)
+  assert.equal(canGoUp(null), false)
+})
+
 test('revoked host: reconnect refuses to resurrect the session', async () => {
   const registry = makeRegistry({ isHostAuthorized: () => false })
   const key = '/workspace/DSH-plugin'
