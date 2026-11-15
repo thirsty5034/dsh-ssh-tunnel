@@ -2,7 +2,7 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
-## 0.4.7 — 2026-10-19
+## 0.4.7 — 2026-11-15
 
 ### Fixed
 - **Routes mount again on DSH 0.2.** `inject` required the deleted `webRuntime` service, so the plugin stayed pending and every `/dsh-ssh-tunnel/*` request fell through to the static fallback (empty HTTP 405). Admission now uses `ctx.connection.requestRejection` (only `undefined` is allowed), covering both the JSON API and the vendor asset route. Requires DSH **0.2.1-rc.1+** and `dsh-better-sidebar` v0.28. No `webRuntime` fallback is kept.

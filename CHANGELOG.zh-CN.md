@@ -2,7 +2,7 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
-## 0.4.7 — 2026-10-19
+## 0.4.7 — 2026-11-15
 
 ### 修复
 - **在 DSH 0.2 上重新挂载路由。** `inject` 仍依赖已删除的 `webRuntime`，插件一直 pending，`/dsh-ssh-tunnel/*` 落到静态文件兜底（空 body 的 HTTP 405）。准入改走 `ctx.connection.requestRejection`（仅 `undefined` 放行），JSON API 与 vendor 资源路由都走同一道围栏。需要 DSH **0.2.1-rc.1+** 与 `dsh-better-sidebar` v0.28。不保留 `webRuntime` 兼容层。

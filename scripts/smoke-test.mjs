@@ -188,11 +188,16 @@ test('chunkFromBuffer incremental', () => {
 })
 
 test('issue #11 repro: two overlapping shellRead polls with same cursor must not double-write', async () => {
-  // Mirrors the pre-fix CenterBash polling callback: the interval fires
-  // again while the first shellRead is still awaited, both requests carry
-  // since=0, and the host returns the same chunk to both. The in-flight
-  // guard must make the second tick a no-op, so the terminal sees 'abc'
-  // exactly once and the cursor advances once.
+  // Mirrors the CenterBash polling tick in lib/client.js (see the
+  // readInFlight guard there). KEEP IN SYNC: if the component's tick
+  // guard/cursor logic changes, update this mirror so the regression
+  // keeps covering the real shape (a shared extracted poll helper would
+  // remove the drift risk entirely).
+  // Scenario: the interval fires again while the first shellRead is
+  // still awaited, both requests carry since=0, and the host returns the
+  // same chunk to both. The in-flight guard must make the second tick a
+  // no-op, so the terminal sees 'abc' exactly once and the cursor
+  // advances once.
   let shellReadCalls = 0
   const written = []
   const term = { write(s) { written.push(s) } }
@@ -229,8 +234,10 @@ test('issue #11 repro: two overlapping shellRead polls with same cursor must not
 })
 
 test('issue #11 repro: cancelled poll must not write to a disposed terminal', async () => {
-  // Mirrors the unmount race: cleanup runs while a shellRead is awaited.
-  // The post-await `cancelled` check must skip the terminal write.
+  // Mirrors the CenterBash cleanup race in lib/client.js. KEEP IN SYNC
+  // with the component's post-await `cancelled || !termRef.current`
+  // check. (The `!term` arm below is a faithful mirror of the component
+  // shape; `term` never becomes null in this isolated harness.)
   let cancelled = false
   const written = []
   const term = { write(s) { written.push(s) } }
