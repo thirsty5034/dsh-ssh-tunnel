@@ -2,6 +2,13 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## 0.4.7 — 2026-10-19
+
+### 修复
+- **在 DSH 0.2 上重新挂载路由。** `inject` 仍依赖已删除的 `webRuntime`，插件一直 pending，`/dsh-ssh-tunnel/*` 落到静态文件兜底（空 body 的 HTTP 405）。准入改走 `ctx.connection.requestRejection`（仅 `undefined` 放行），JSON API 与 vendor 资源路由都走同一道围栏。需要 DSH **0.2.1-rc.1+** 与 `dsh-better-sidebar` v0.28。不保留 `webRuntime` 兼容层。
+- **修复终端轮询导致输出重复（issue #11）。** 120ms 的 shell 轮询定时器可能在上一次 `shellRead` 尚未返回时再次触发；两次请求携带同一个 `since` 游标、返回同一段内容，终端就会写出 `abcabc`。现在在途请求未结束前跳过本次 tick，且每次 `await` 后都复查终端是否已取消/销毁；瞬时 API 错误也不会让在途标志卡死。
+- **修复终端首屏输出丢失。** 原先启动时只做一次 `shellRead(since: 0, full: true)` 快照，请求在途期间主机继续追加的输出会被丢掉（欢迎横幅/首个提示符被截断）。现在启动阶段按会话实时游标增量追赶（有上限的循环），追平后再交给轮询。
+
 ## 0.4.6 — 2026-09-15
 
 ### 修复

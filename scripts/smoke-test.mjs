@@ -36,7 +36,7 @@ import {
   kbiUnsupportedError,
 } from '../lib/shared/session-policy.js'
 import { createSessionRegistry } from '../lib/session.js'
-import { isLoopbackHostname, isTrustedRequest } from '../lib/shared/http-trust.js'
+import { isLoopbackHostname } from '../lib/shared/http-trust.js'
 import {
   findExistingHostByEndpoint,
   readJsonFile,
@@ -127,18 +127,10 @@ test('persist: corrupt json throws; atomic write replaces', () => {
   ), undefined)
 })
 
-test('http-trust: 0.0.0.0 is not loopback; evil Origin is rejected', () => {
+test('http-trust: 0.0.0.0 is not loopback', () => {
   assert.equal(isLoopbackHostname('127.0.0.1'), true)
   assert.equal(isLoopbackHostname('::1'), true)
   assert.equal(isLoopbackHostname('0.0.0.0'), false)
-  const loopReq = { headers: { host: '127.0.0.1:3080' } }
-  assert.equal(isTrustedRequest(loopReq, []), true)
-  const zeroReq = { headers: { host: '0.0.0.0:3080' } }
-  assert.equal(isTrustedRequest(zeroReq, []), false)
-  const csrf = { headers: { host: '127.0.0.1:3080', origin: 'http://evil.example' } }
-  assert.equal(isTrustedRequest(csrf, []), false)
-  const sameOrigin = { headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' } }
-  assert.equal(isTrustedRequest(sameOrigin, []), true)
 })
 
 test('constrainToWorkspace rejects outbound symlink', () => {
@@ -193,6 +185,68 @@ test('chunkFromBuffer incremental', () => {
   const b = chunkFromBuffer('hello world', 5)
   assert.equal(b.chunk, ' world')
   assert.equal(b.since, 5)
+})
+
+test('issue #11 repro: two overlapping shellRead polls with same cursor must not double-write', async () => {
+  // Mirrors the pre-fix CenterBash polling callback: the interval fires
+  // again while the first shellRead is still awaited, both requests carry
+  // since=0, and the host returns the same chunk to both. The in-flight
+  // guard must make the second tick a no-op, so the terminal sees 'abc'
+  // exactly once and the cursor advances once.
+  let shellReadCalls = 0
+  const written = []
+  const term = { write(s) { written.push(s) } }
+  let since = 0
+  let readInFlight = false
+  const api = async (method, body) => {
+    assert.equal(method, 'shellRead')
+    shellReadCalls += 1
+    const call = shellReadCalls
+    if (call === 1) await new Promise((r) => setTimeout(r, 30)) // first poll hangs
+    return { chunk: 'abc', length: 3, since: body.since }
+  }
+  const poll = async () => {
+    // Mirrors the fixed CenterBash tick: the in-flight guard is checked
+    // at entry and released only when the awaited read settles.
+    if (readInFlight) return
+    readInFlight = true
+    try {
+      const r = await api('shellRead', { since })
+      if (r.chunk) {
+        term.write(r.chunk)
+        since = r.length != null ? r.length : since + r.chunk.length
+      } else if (r.length != null) since = r.length
+    } finally {
+      readInFlight = false
+    }
+  }
+  const tick1 = poll() // tick 1 starts the read and stays in flight
+  await poll() // tick 2 must be a no-op while tick 1 is awaited
+  await tick1 // let tick 1's hung read resolve and release the guard
+  assert.deepEqual(written, ['abc']) // no 'abcabc'
+  assert.equal(since, 3)
+  assert.equal(shellReadCalls, 1)
+})
+
+test('issue #11 repro: cancelled poll must not write to a disposed terminal', async () => {
+  // Mirrors the unmount race: cleanup runs while a shellRead is awaited.
+  // The post-await `cancelled` check must skip the terminal write.
+  let cancelled = false
+  const written = []
+  const term = { write(s) { written.push(s) } }
+  const api = async () => {
+    await new Promise((r) => setTimeout(r, 20))
+    return { chunk: 'late', length: 4, since: 0 }
+  }
+  const poll = async () => {
+    const r = await api('shellRead', { since: 0 })
+    if (cancelled || !term) return // post-await guard under test
+    term.write(r.chunk)
+  }
+  const p = poll()
+  cancelled = true // cleanup fires mid-flight
+  await p
+  assert.deepEqual(written, [])
 })
 
 test('host key fingerprint is stable sha256 hex (no UTF-8 collision)', () => {

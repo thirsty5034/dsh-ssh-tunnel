@@ -22,7 +22,8 @@ This package is a **DSH-native implementation** (Cordis host/client plugin, `dsh
 
 ## Requirements
 
-- DSH web profile with **dsh-better-sidebar** (≥ 0.12)  
+- DSH **0.2.1-rc.1+** (`webRuntime` is gone; pin **0.4.6** on older hosts)
+- **dsh-better-sidebar v0.28** (HTTP admission uses `ctx.connection.requestRejection`, same as better-sidebar)
 - Node.js 18+  
 - Network access to your SSH targets  
 

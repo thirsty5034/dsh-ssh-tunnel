@@ -2,6 +2,13 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## 0.4.7 — 2026-10-19
+
+### Fixed
+- **Routes mount again on DSH 0.2.** `inject` required the deleted `webRuntime` service, so the plugin stayed pending and every `/dsh-ssh-tunnel/*` request fell through to the static fallback (empty HTTP 405). Admission now uses `ctx.connection.requestRejection` (only `undefined` is allowed), covering both the JSON API and the vendor asset route. Requires DSH **0.2.1-rc.1+** and `dsh-better-sidebar` v0.28. No `webRuntime` fallback is kept.
+- **Terminal output no longer duplicates while polling (issue #11).** The 120 ms shell-read timer could start a new `shellRead` while the previous request was still awaited; both carried the same `since` cursor and both resolved with the same chunk, so the terminal wrote `abcabc`. The tick now skips while a read is in flight, and every write re-checks the cancelled/disposed terminal after `await`. A transient API error no longer leaves the guard stuck.
+- **Initial terminal dump no longer loses output.** The boot read used a single `shellRead(since: 0, full: true)` snapshot; output appended while that request was in flight was dropped (command banner/first prompt truncated). The boot path now drains incrementally against the live session cursor (bounded catch-up loop) before polling takes over.
+
 ## 0.4.6 — 2026-09-15
 
 ### Fixed

@@ -22,7 +22,8 @@ DeepSeek Harness **社区插件**：多机 **SSH 隧道** + **SSHManager**，挂
 
 ## 环境要求
 
-- 带 **dsh-better-sidebar**（≥ 0.12）的 DSH web profile  
+- DSH **0.2.1-rc.1+**（0.2 起没有 `webRuntime`；更早宿主请固定 **0.4.6**）
+- **dsh-better-sidebar v0.28**（HTTP 准入与 better-sidebar 一样走 `ctx.connection.requestRejection`）
 - Node.js 18+  
 - 能访问目标 SSH 主机  
 
