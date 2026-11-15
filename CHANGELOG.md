@@ -6,7 +6,7 @@
 
 ### Fixed
 - **SSH terminal output no longer corrupts multi-byte characters (H1).** ssh2 channel chunks do not respect UTF-8 boundaries; decoding each chunk independently turned characters split across packets into U+FFFD forever. Both the terminal ring (`pushOutput`) and `SSHManager.exec` now decode incrementally with `StringDecoder`.
-- **Ring eviction can no longer skip unread output (H2).** The eviction budget and the client cursor now share one unit (UTF-16 code units); previously bytes were evicted while clients counted string indices, so a burst (>512 KB between polls) could silently drop unread characters.
+- **Ring eviction can no longer skip unread output (H2).** The eviction budget now counts UTF-16 code units — the same unit the client cursor uses — instead of `Buffer.byteLength`. A large multi-byte burst (e.g. a 600 KB CJK dump) is no longer evicted early by the byte budget, and the eviction boundary always aligns with what the client has actually read.
 - **`exec` `max_bytes` is a byte budget again (M1).** The old `slice(0, maxBytes)` cut at a UTF-16 index, exceeding the promise up to 3x on CJK / 4x on emoji; capping now happens on the byte array at a code-point boundary, and the result carries `truncated: true` when the cap engaged.
 - **Migrated draft files are deleted (M2).** The one-time migration copied plaintext passwords/passphrases/PEMs into `secrets.json` but left the old draft JSON on disk; it is now removed after the migration marker is durable.
 - **Concurrent shell opens share one PTY (M3).** Overlapping `shellOpen`/`read_session` calls could each open a shell channel; the loser leaked as an orphan stream that kept feeding duplicate output. Opens are now serialized per session.
