@@ -36,7 +36,7 @@ import {
   kbiUnsupportedError,
 } from '../lib/shared/session-policy.js'
 import { createSessionRegistry } from '../lib/session.js'
-import { isLoopbackHostname, isWildcardHost, apiTrustDecision } from '../lib/shared/http-trust.js'
+import { isLoopbackHostname, isWildcardHost, isTrustedRequest, apiTrustDecision } from '../lib/shared/http-trust.js'
 import {
   findExistingHostByEndpoint,
   readJsonFile,
@@ -142,12 +142,25 @@ test('apiTrustDecision: connection service is authoritative when mounted', () =>
 })
 
 test('apiTrustDecision: webStartup trustedHosts fence when connection is absent', () => {
-  const req = { headers: { host: 'dsh.example.com', origin: 'https://dsh.example.com' } }
-  const evil = { headers: { host: 'dsh.example.com', origin: 'https://evil.example' } }
+  // Same explicit port on Host and Origin (the S1 rule: origin port must
+  // equal the request port, so same-hostname-different-port cannot pass).
+  const req = { headers: { host: 'dsh.example.com:8443', origin: 'https://dsh.example.com:8443' } }
+  const evil = { headers: { host: 'dsh.example.com:8443', origin: 'https://evil.example' } }
+  const evilPort = { headers: { host: 'dsh.example.com:8443', origin: 'https://dsh.example.com:9999' } }
   assert.equal(apiTrustDecision({ webStartup: { trustedHosts: ['dsh.example.com'] } }, req), undefined)
   assert.equal(apiTrustDecision({ webStartup: { trustedHosts: ['dsh.example.com'] } }, evil), 403)
+  assert.equal(apiTrustDecision({ webStartup: { trustedHosts: ['dsh.example.com'] } }, evilPort), 403)
   // No trusted hosts configured -> the layer admits nothing.
   assert.equal(apiTrustDecision({ webStartup: { trustedHosts: [] } }, req), 403)
+})
+
+test('isTrustedRequest: same-hostname cross-port origin is rejected (S1)', () => {
+  const req = { headers: { host: 'dsh.example.com:3080', origin: 'http://dsh.example.com:9999' } }
+  assert.equal(isTrustedRequest(req, ['dsh.example.com']), false)
+  const samePort = { headers: { host: 'dsh.example.com:3080', origin: 'http://dsh.example.com:3080' } }
+  assert.equal(isTrustedRequest(samePort, ['dsh.example.com']), true)
+  const hostWithPort = { headers: { host: 'dsh.example.com:3080', origin: 'http://dsh.example.com:3080' } }
+  assert.equal(isTrustedRequest(hostWithPort, ['dsh.example.com:3080']), true)
 })
 
 test('apiTrustDecision: loopback-only last resort without connection/webStartup', () => {

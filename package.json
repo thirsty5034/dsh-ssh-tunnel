@@ -1,6 +1,6 @@
 {
   "name": "dsh-ssh-tunnel",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Multi-host SSH tunnel and SSHManager tool for DeepSeek Harness (project-scoped grants)",
   "type": "module",
   "license": "MIT",
@@ -27,7 +27,8 @@
     "dsh-better-sidebar"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "dsh": ">=0.2.1-rc.1"
   },
   "main": "lib/index.js",
   "exports": {
@@ -40,6 +41,7 @@
     "check": "node --check lib/index.js && node scripts/smoke-test.mjs"
   },
   "dsh": {
+    "manifestVersion": 1,
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
@@ -58,7 +60,17 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/dsh-client-connection": "^0.2.1-rc.1",
-    "dsh-better-sidebar": ">=0.12.0"
+    "dsh-better-sidebar": ">=0.12.0",
+    "react": ">=18 <19",
+    "react-dom": ">=18 <19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "files": [
     "CHANGELOG.md",
@@ -69,6 +81,7 @@
     "cordis.patch.yml",
     "lib",
     "scripts/install.sh",
-    "scripts/install.ps1"
+    "scripts/install.ps1",
+    "scripts/smoke-test.mjs"
   ]
 }

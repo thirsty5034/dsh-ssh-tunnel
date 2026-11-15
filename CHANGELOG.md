@@ -2,6 +2,26 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## 0.5.1 — 2026-11-15
+
+### Fixed
+- **SSH terminal output no longer corrupts multi-byte characters (H1).** ssh2 channel chunks do not respect UTF-8 boundaries; decoding each chunk independently turned characters split across packets into U+FFFD forever. Both the terminal ring (`pushOutput`) and `SSHManager.exec` now decode incrementally with `StringDecoder`.
+- **Ring eviction can no longer skip unread output (H2).** The eviction budget and the client cursor now share one unit (UTF-16 code units); previously bytes were evicted while clients counted string indices, so a burst (>512 KB between polls) could silently drop unread characters.
+- **`exec` `max_bytes` is a byte budget again (M1).** The old `slice(0, maxBytes)` cut at a UTF-16 index, exceeding the promise up to 3x on CJK / 4x on emoji; capping now happens on the byte array at a code-point boundary, and the result carries `truncated: true` when the cap engaged.
+- **Migrated draft files are deleted (M2).** The one-time migration copied plaintext passwords/passphrases/PEMs into `secrets.json` but left the old draft JSON on disk; it is now removed after the migration marker is durable.
+- **Concurrent shell opens share one PTY (M3).** Overlapping `shellOpen`/`read_session` calls could each open a shell channel; the loser leaked as an orphan stream that kept feeding duplicate output. Opens are now serialized per session.
+- **Post-handshake authorization re-check (M4).** A grant revoked while the SSH handshake was in flight no longer leaves a live connection to an unauthorized host; the client is closed immediately.
+- **Trusted-host layer is port-aware (S1).** In the fallback fence, an `Origin` from the same hostname on a different port is now rejected; a configured entry may be `host`, `host:port`, or a URL.
+- **Empty `projectPathKey` fails closed (L3)** in the result-delivery gates instead of skipping the revocation check.
+- **`shellResize` clamps pty dimensions (L4)** to the ssh2 uint32 range (1..4294967295) in both the HTTP API and the SSHManager action.
+- **`exec` `cwd` is trimmed (L6)** so `"/workspace "` no longer silently drops the `cd`.
+- **Host-key prompts expire (L1)** after 10 minutes and the pending map is capped at 64 entries; abandoned prompts no longer accumulate forever.
+- **Vendor assets revalidate hourly (L2)** instead of `max-age=31536000, immutable`, so a plugin upgrade actually replaces the xterm bundle.
+
+### Added
+- **Host compatibility metadata.** `dsh.manifestVersion: 1` and `engines.dsh: ">=0.2.1-rc.1"` are now declared (DSH 0.2.x line, matching the connection-service requirement), and `react`/`react-dom` are declared as optional peers since the client renders through the host's React.
+- **`scripts/smoke-test.mjs` ships in the package**, so `npm test` / `npm run check` work from an npm/tarball install (closes the upstream issue about the missing smoke script in the packed install).
+
 ## 0.5.0 — 2026-11-15
 
 ### Added

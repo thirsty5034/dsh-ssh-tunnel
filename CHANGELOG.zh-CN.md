@@ -2,6 +2,26 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## 0.5.1 — 2026-11-15
+
+### 修复
+- **终端输出不再撕裂多字节字符（H1）。** ssh2 channel 分包不保证 UTF-8 边界，按块独立解码会把跨包字符永久变成 U+FFFD。终端环形缓冲（`pushOutput`）与 `SSHManager.exec` 均改为 `StringDecoder` 增量解码。
+- **环形缓冲淘汰不再吞掉未读输出（H2）。** 淘汰预算与客户端游标统一为 UTF-16 码元单位；此前按字节淘汰、客户端按字符计数，单次轮询间隔输出超过 512KB 时会静默丢失未读内容。
+- **`exec` 的 `max_bytes` 恢复字节语义（M1）。** 旧实现按 UTF-16 下标切片，中文可超限 3 倍、emoji 4 倍；现在在字节数组上按码点边界截断，并在截断发生时返回 `truncated: true`。
+- **迁移后的 draft 明文文件被删除（M2）。** 一次性迁移把明文密码/口令/PEM 拷入 `secrets.json` 后，旧 draft JSON 仍留在磁盘上；现在迁移标记落盘后即删除。
+- **并发打开 shell 只开一条 PTY（M3）。** 并发的 `shellOpen`/`read_session` 此前会各自调用 `client.shell()`，失败者成为孤儿流持续制造重复输出；现在按会话串行化。
+- **建连完成后复核授权（M4）。** SSH 握手期间授权被撤销时，不再留下一条指向未授权主机的活动连接；客户端立即关闭。
+- **trusted-host 层识别端口（S1）。** 降级围栏中，同域名不同端口的 `Origin` 现在被拒绝；配置项支持 `host`、`host:port` 或 URL 形式。
+- **空 `projectPathKey` 失败关闭（L3）**：结果门禁不再跳过撤销检查。
+- **`shellResize` 钳制 pty 尺寸（L4）** 到 ssh2 uint32 范围（1..4294967295），HTTP API 与 SSHManager action 均生效。
+- **`exec` 的 `cwd` 先 trim（L6)**，`"/workspace "` 不再静默丢失 `cd`。
+- **Host-key 提示过期（L1）**：10 分钟后自动清理，待处理映射上限 64 条；被遗弃的提示不再无限堆积。
+- **Vendor 资源每小时重新验证（L2）**，替代 `max-age=31536000, immutable`，插件升级后 xterm 产物能真正更新。
+
+### 新增
+- **宿主兼容性元数据。** 现在声明 `dsh.manifestVersion: 1` 与 `engines.dsh: ">=0.2.1-rc.1"`（对应 0.2.x 线的 connection 服务要求）；`react`/`react-dom` 声明为可选 peer（客户端渲染依赖宿主 React）。
+- **`scripts/smoke-test.mjs` 随包发布**，npm/tarball 安装后 `npm test` / `npm run check` 可用（回应上游「安装包缺冒烟脚本」的 issue）。
+
 ## 0.5.0 — 2026-11-15
 
 ### 新增
