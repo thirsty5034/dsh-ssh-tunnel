@@ -2,6 +2,12 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## 0.5.2 — 2026-11-16
+
+### 修复
+- **LAN 部署不再要求显式 `--trusted-host`（fork issue #7）。** 降级信任层现在把 listener 的具体绑定地址（来自 `webStartup` 的 `--host` + `--port`）与配置的信任主机一并放行，与上游 connection 围栏「单独接受 bind IP」的行为对齐。通配绑定（`0.0.0.0`/`::`）仍然不构成任何授权。
+- **「已在根目录」提示现在真的能显示（fork PR #3 审校）。** 提示原本是禁用按钮上的 `title`，而禁用按钮不接收 hover 事件，tooltip 永远不会弹出。提示移到始终可 hover 的外层容器，内部按钮用 pointer-events 拦截，点击在 JS 层门控。两个 SFTP 面板（本地/远端）共用同一包装，同时生效。
+
 ## 0.5.1 — 2026-11-15
 
 ### 修复

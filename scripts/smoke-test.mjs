@@ -163,6 +163,28 @@ test('isTrustedRequest: same-hostname cross-port origin is rejected (S1)', () =>
   assert.equal(isTrustedRequest(hostWithPort, ['dsh.example.com:3080']), true)
 })
 
+test('apiTrustDecision: listener bind address is a fallback authority (fork issue #7)', () => {
+  // LAN deployment: dsh web started with --host 192.168.1.10 --port 3092
+  // and no --trusted-host. The bind address must admit same-host
+  // requests; wildcard binds authorize nothing.
+  const ctx = { webStartup: { host: '192.168.1.10', port: 3092, trustedHosts: [] } }
+  const lanReq = { headers: { host: '192.168.1.10:3092', origin: 'http://192.168.1.10:3092' } }
+  const lanNoOrigin = { headers: { host: '192.168.1.10:3092' } }
+  const evil = { headers: { host: '192.168.1.10:3092', origin: 'http://evil.example' } }
+  assert.equal(apiTrustDecision(ctx, lanReq), undefined)
+  assert.equal(apiTrustDecision(ctx, lanNoOrigin), undefined)
+  assert.equal(apiTrustDecision(ctx, evil), 403)
+  // Wildcard bind never becomes an authority.
+  const wildcardCtx = { webStartup: { host: '0.0.0.0', port: 3080, trustedHosts: [] } }
+  const remote = { headers: { host: 'dsh.example.com:3080' } }
+  assert.equal(apiTrustDecision(wildcardCtx, remote), 403)
+  // Explicit --trusted-host still works alongside the bind address.
+  // (Host and Origin must carry the same explicit port per the S1 rule.)
+  const bothCtx = { webStartup: { host: '192.168.1.10', port: 3092, trustedHosts: ['vpn.example.com'] } }
+  assert.equal(apiTrustDecision(bothCtx, { headers: { host: 'vpn.example.com:8443', origin: 'https://vpn.example.com:8443' } }), undefined)
+  assert.equal(apiTrustDecision(bothCtx, { headers: { host: 'vpn.example.com:8443', origin: 'https://vpn.example.com:9999' } }), 403)
+})
+
 test('apiTrustDecision: loopback-only last resort without connection/webStartup', () => {
   const loop = { headers: { host: '127.0.0.1:3080' } }
   const loopSameOrigin = { headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' } }

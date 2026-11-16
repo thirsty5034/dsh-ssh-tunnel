@@ -2,6 +2,12 @@
 
 [English](./CHANGELOG.md) | [简体中文](./CHANGELOG.zh-CN.md)
 
+## 0.5.2 — 2026-11-16
+
+### Fixed
+- **LAN deployments work without an explicit `--trusted-host` (fork issue #7).** In the fallback trust layer, the listener's concrete bind address (`--host` + `--port` from `webStartup`) is now admitted alongside the configured trusted hosts, matching the upstream connection fence which accepts the bind IP on its own. Wildcard bind targets (`0.0.0.0`/`::`) still authorize nothing.
+- **The "already at root" hint is actually visible (fork PR #3 review).** The hint was a `title` on the disabled button, and disabled buttons never receive hover — the tooltip could never appear. The hint now lives on the always-hoverable wrapper, the button inside is pointer-events-gated, and the click is gated in JS. Applies to both SFTP panes (the wrapper is shared).
+
 ## 0.5.1 — 2026-11-15
 
 ### Fixed
